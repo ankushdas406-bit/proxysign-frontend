@@ -1,18 +1,8 @@
 import React, { useState, useEffect } from "react";
 import { API_URL } from "../config";
 import AdminLayout from "../components/AdminLayout.jsx";
+import QRCodeGenerator from "../components/QRCodeGenerator"; 
 import "../styles/ui.css";
-
-// correct usage when mapping lectures
-{lectures.map((lecture) => (
-  <LectureCard key={lecture._id} lecture={lecture} />
-))}
-
-// inside LectureCard.jsx
-import QRCodeGenerator from "../components/QRCodeGenerator";
-// ...
-<QRCodeGenerator lecture={lecture} />
-
 
 export default function Lectures() {
   const [lectures, setLectures] = useState([]);
@@ -21,15 +11,13 @@ export default function Lectures() {
 
   const token = localStorage.getItem("token");
 
-  // ===================== FETCH ALL LECTURES =====================
+  // FETCH ALL LECTURES
   const fetchLectures = async () => {
     try {
       const res = await fetch(`${import.meta.env.VITE_API_URL}/api/lectures`);
-const json = await res.json();
-// if API returns { success:true, data: [...] }
-const lecturesArray = json.data ?? json.items ?? json; 
-setLectures(lecturesArray);
-
+      const json = await res.json();
+      // backend returns { success, data: [...] }
+      setLectures(json.data || []);
     } catch (err) {
       setError(err.message);
     }
@@ -40,30 +28,27 @@ setLectures(lecturesArray);
   }, []);
 
   // DELETE LECTURE
-
   const deleteLecture = async (id) => {
-  if (!window.confirm("Delete this lecture?")) return;
+    if (!window.confirm("Delete this lecture?")) return;
 
-  try {
-    const res = await fetch(`${API_URL}/api/lectures/${id}`, {
-      method: "DELETE",
-      headers: {
-        Authorization: `Bearer ${token}`,
-      },
-    });
+    try {
+      const res = await fetch(`${API_URL}/api/lectures/${id}`, {
+        method: "DELETE",
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
 
-    const data = await res.json();
-    if (!res.ok) throw new Error(data.error || "Delete failed");
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "Delete failed");
 
-    // Update UI instantly
-    setLectures((prev) => prev.filter((lec) => lec._id !== id));
-  } catch (err) {
-    alert(err.message);
-  }
-};
+      setLectures((prev) => prev.filter((lec) => lec._id !== id));
+    } catch (err) {
+      alert(err.message);
+    }
+  };
 
-
-  // ====================== CREATE LECTURE =======================
+  // CREATE LECTURE
   const createLecture = async () => {
     setError("");
 
@@ -75,8 +60,6 @@ setLectures(lecturesArray);
     let lat = null;
     let lon = null;
 
-
-    // FIXED LOCATION HANDLING
     try {
       const position = await new Promise((resolve, reject) =>
         navigator.geolocation.getCurrentPosition(resolve, reject, {
@@ -87,13 +70,12 @@ setLectures(lecturesArray);
 
       lat = position.coords.latitude;
       lon = position.coords.longitude;
+
       console.log("Location success:", lat, lon);
     } catch (err) {
       console.warn("⚠ Location failed:", err.message);
-      // We ALLOW lecture to be created WITHOUT location
     }
 
-    // SEND TO BACKEND
     try {
       const res = await fetch(`${API_URL}/api/lectures`, {
         method: "POST",
@@ -101,11 +83,7 @@ setLectures(lecturesArray);
           "Content-Type": "application/json",
           Authorization: `Bearer ${token}`,
         },
-        body: JSON.stringify({
-          title,
-          lat,
-          lon,
-        }),
+        body: JSON.stringify({ title, lat, lon }),
       });
 
       const data = await res.json();
@@ -115,7 +93,6 @@ setLectures(lecturesArray);
       setTitle("");
       fetchLectures();
     } catch (err) {
-      console.error("Create lecture error:", err);
       setError(err.message);
     }
   };
@@ -153,29 +130,28 @@ setLectures(lecturesArray);
         <div className="lecture-list">
           {lectures.map((lec) => (
             <div key={lec._id} className="lecture-item neon-card">
-  <h3>{lec.title}</h3>
+              <h3>{lec.title}</h3>
 
-  <small>
-    Created: {new Date(lec.createdAt).toLocaleString()}
-  </small>
+              <small>Created: {new Date(lec.createdAt).toLocaleString()}</small>
 
-  <p>
-    Location:{" "}
-    {lec.lat && lec.lon ? `${lec.lat.toFixed(5)}, ${lec.lon.toFixed(5)}` : "Not Captured"}
-  </p>
+              <p>
+                Location:{" "}
+                {lec.lat && lec.lon
+                  ? `${lec.lat.toFixed(5)}, ${lec.lon.toFixed(5)}`
+                  : "Not Captured"}
+              </p>
 
-  <QRCodeGenerator value={`${window.location.origin}/attend?lecture=${lec._id}`} />
+              {/* FIXED: Proper QR */}
+              <QRCodeGenerator lecture={lec} />
 
-  {/* DELETE BUTTON */}
-  <button
-    className="action-btn delete-btn"
-    style={{ background: "#ff4d4d", marginTop: "10px" }}
-    onClick={() => deleteLecture(lec._id)}
-  >
-    Delete Lecture
-  </button>
-</div>
-
+              <button
+                className="action-btn delete-btn"
+                style={{ background: "#ff4d4d", marginTop: "10px" }}
+                onClick={() => deleteLecture(lec._id)}
+              >
+                Delete Lecture
+              </button>
+            </div>
           ))}
         </div>
       </div>
