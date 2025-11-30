@@ -1,8 +1,18 @@
 import React, { useState, useEffect } from "react";
 import { API_URL } from "../config";
 import AdminLayout from "../components/AdminLayout.jsx";
-import QRCodeGenerator from "../components/QRCodeGenerator";
 import "../styles/ui.css";
+
+// correct usage when mapping lectures
+{lectures.map((lecture) => (
+  <LectureCard key={lecture._id} lecture={lecture} />
+))}
+
+// inside LectureCard.jsx
+import QRCodeGenerator from "../components/QRCodeGenerator";
+// ...
+<QRCodeGenerator lecture={lecture} />
+
 
 export default function Lectures() {
   const [lectures, setLectures] = useState([]);
@@ -14,14 +24,12 @@ export default function Lectures() {
   // ===================== FETCH ALL LECTURES =====================
   const fetchLectures = async () => {
     try {
-      const res = await fetch(`${API_URL}/api/lectures`, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
+      const res = await fetch(`${import.meta.env.VITE_API_URL}/api/lectures`);
+const json = await res.json();
+// if API returns { success:true, data: [...] }
+const lecturesArray = json.data ?? json.items ?? json; 
+setLectures(lecturesArray);
 
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.error || "Failed to fetch lectures");
-
-      setLectures(data);
     } catch (err) {
       setError(err.message);
     }
