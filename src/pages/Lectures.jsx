@@ -1,7 +1,6 @@
 import React, { useState, useEffect } from "react";
-import { API_URL } from "../config";
 import AdminLayout from "../components/AdminLayout.jsx";
-import QRCodeGenerator from "../components/QRCodeGenerator"; 
+import QRCodeGenerator from "../components/QRCodeGenerator";
 import "../styles/ui.css";
 
 export default function Lectures() {
@@ -9,16 +8,25 @@ export default function Lectures() {
   const [title, setTitle] = useState("");
   const [error, setError] = useState("");
 
+  const API_URL = import.meta.env.VITE_API_URL;
   const token = localStorage.getItem("token");
 
-  // FETCH ALL LECTURES
+  // ========================= FETCH ALL LECTURES =========================
   const fetchLectures = async () => {
     try {
-      const res = await fetch(`${import.meta.env.VITE_API_URL}/api/lectures`);
+      const res = await fetch(`${API_URL}/api/lectures`, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
+
       const json = await res.json();
-      // backend returns { success, data: [...] }
+
+      if (!res.ok) throw new Error(json.error || "Failed to fetch lectures");
+
       setLectures(json.data || []);
     } catch (err) {
+      console.error("Fetch lectures error:", err);
       setError(err.message);
     }
   };
@@ -27,7 +35,7 @@ export default function Lectures() {
     fetchLectures();
   }, []);
 
-  // DELETE LECTURE
+  // ========================= DELETE LECTURE =========================
   const deleteLecture = async (id) => {
     if (!window.confirm("Delete this lecture?")) return;
 
@@ -48,7 +56,7 @@ export default function Lectures() {
     }
   };
 
-  // CREATE LECTURE
+  // ========================= CREATE LECTURE =========================
   const createLecture = async () => {
     setError("");
 
@@ -97,6 +105,7 @@ export default function Lectures() {
     }
   };
 
+  // ========================= UI =========================
   return (
     <AdminLayout>
       <h1 className="dashboard-title">Manage Lectures</h1>
@@ -121,7 +130,7 @@ export default function Lectures() {
         {error && <p style={{ color: "red", marginTop: "10px" }}>{error}</p>}
       </div>
 
-      {/* ALL LECTURES LIST */}
+      {/* ALL LECTURES */}
       <div className="panel neon-card" style={{ padding: "20px" }}>
         <h2>All Lectures</h2>
 
@@ -141,8 +150,8 @@ export default function Lectures() {
                   : "Not Captured"}
               </p>
 
-              {/* FIXED: Proper QR */}
-              <QRCodeGenerator lecture={lec} />
+              {/* QR CODE */}
+              <QRCodeGenerator value={`${window.location.origin}/attend?lecture=${lec._id}`} />
 
               <button
                 className="action-btn delete-btn"
